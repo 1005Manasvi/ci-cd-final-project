@@ -43,10 +43,20 @@ gunicorn --bind 0.0.0.0:8000 service:app
 | PUT | `/counters/<name>` | Increment counter value |
 | GET | `/counters/<name>` | Read counter value |
 | DELETE | `/counters/<name>` | Delete counter |
+| POST | `/products` | Create a product from JSON |
+| GET | `/products` | List products; optionally filter by `name`, `category`, or `availability` |
+| GET | `/products/<id>` | Read a product |
+| PUT | `/products/<id>` | Update product fields from JSON |
+| DELETE | `/products/<id>` | Delete a product |
 
 ## CI/CD Pipeline
 - **GitHub Actions Workflow**: Linting with `flake8` and unit testing with `nosetests`
 - **Tekton Pipeline Tasks**: `cleanup`, `git-clone`, `flake8`, `nose`, `buildah`, `deploy`
+
+### Product API
+Product objects use `name`, `category`, numeric `price`, and boolean `availability`
+fields. Product data is held in memory and resets when the service restarts.
+Run the product BDD scenarios with `behave features`.
 
 ## License
 Licensed under the Apache License. See [LICENSE](/LICENSE)

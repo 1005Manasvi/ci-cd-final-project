@@ -7,7 +7,9 @@ Test cases can be run with the following:
 """
 from unittest import TestCase
 from service.common import status  # HTTP Status Codes
+from service.models import Product
 from service.routes import app, reset_counters
+from tests.factories import fake_products
 
 
 ######################################################################
@@ -29,6 +31,7 @@ class CounterTest(TestCase):
     def setUp(self):
         """ This runs before each test """
         reset_counters()
+        Product.clear()
         self.app = app.test_client()
 
     def tearDown(self):
@@ -130,3 +133,66 @@ class CounterTest(TestCase):
         # Gte it to make sure it's really gone
         resp = self.app.get(f"/counters/{name}")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ProductRouteTest(TestCase):
+    """Product API route tests."""
+
+    @classmethod
+    def setUpClass(cls):
+        app.testing = True
+
+    def setUp(self):
+        Product.clear()
+        self.products = [
+            Product.create(**attributes) for attributes in fake_products()
+        ]
+        self.app = app.test_client()
+
+    def tearDown(self):
+        Product.clear()
+
+    def test_read_product(self):
+        response = self.app.get(f"/products/{self.products[0].id}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["name"], "Coffee Maker")
+
+    def test_update_product(self):
+        response = self.app.put(
+            f"/products/{self.products[0].id}",
+            json={"name": "Coffee Brewer"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.get_json()["name"], "Coffee Brewer")
+
+    def test_delete_product(self):
+        response = self.app.delete(f"/products/{self.products[0].id}")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        response = self.app.get(f"/products/{self.products[0].id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_list_all_products(self):
+        response = self.app.get("/products")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.get_json()), 3)
+
+    def test_list_products_by_name(self):
+        response = self.app.get("/products?name=coffee")
+        self.assertEqual(
+            [product["name"] for product in response.get_json()],
+            ["Coffee Maker"],
+        )
+
+    def test_list_products_by_category(self):
+        response = self.app.get("/products?category=Kitchen")
+        self.assertEqual(
+            [product["name"] for product in response.get_json()],
+            ["Coffee Maker"],
+        )
+
+    def test_list_products_by_availability(self):
+        response = self.app.get("/products?availability=false")
+        self.assertEqual(
+            [product["name"] for product in response.get_json()],
+            ["Desk Lamp"],
+        )
